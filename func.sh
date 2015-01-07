@@ -33,8 +33,12 @@ has_feature() {
     return 1
 }
 
+dockerfile() {
+    echo $@ >> $BUILD_DIR/Dockerfile
+}
+
 usage() {
-    echo "Usage: create.sh [OPTIONS] CONTAINER_NAME"
+    echo "Usage: create.sh [OPTIONS] TAG_NAME"
     echo -e "\t--enable-compilation \t\t Enable package of compilation in container"
     echo -e "\t-h, --help \t\t\t Print this message"
 }

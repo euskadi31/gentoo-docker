@@ -2,6 +2,8 @@
 # Copyright 2015 Axel Etcheverry
 # Distributed under the terms of the MIT
 
+BUILD_DIR=$(pwd)/build
+
 source func.sh
 
 while true ; do
@@ -16,12 +18,12 @@ while true ; do
 done
 
 if [ -z "$1" ]; then
-    CONTAINER_NAME="gentoo-base"
+    TAG_NAME="gentoo"
 else
-    CONTAINER_NAME=$1
+    TAG_NAME=$1
 fi
 
-einfo "Container Name: $CONTAINER_NAME"
+einfo "Tag name: $TAG_NAME"
 
 if [ ! -z "$CONTAINER_FEATURES" ]; then
     einfo "Features: $CONTAINER_FEATURES"
@@ -29,11 +31,12 @@ fi
 
 DATA_DIR=$(pwd)/data
 LOGGER=$(pwd)/create.log
-BUILD_DIR=$(pwd)/build
 
 check_command wget
 check_command docker
-check_command bzcat
+#check_command bzcat
+check_command bunzip2
+check_command xz
 
 if [ ! -d $DATA_DIR ]; then
     mkdir -p $DATA_DIR
@@ -54,10 +57,6 @@ einfo "Release: ${STAGE3:0:4}-${STAGE3:4:2}-${STAGE3:6}"
 
 STAGE3_FILE="$DATA_DIR/stage3-amd64-$STAGE3.tar.bz2"
 
-IMAGE_NAME="gentoo-temp:stage3-amd64-$STAGE3"
-CONTAINER_TMP_NAME="gentoo-temp-stage3-amd64-$STAGE3"
-CONTAINER_FILE="$BUILD_DIR/gentoo-base.tar.xz"
-
 SRC="http://distfiles.gentoo.org/releases/amd64/autobuilds/$STAGE3/stage3-amd64-$STAGE3.tar.bz2"
 
 if [ ! -f "$STAGE3_FILE" ]; then
@@ -66,72 +65,56 @@ if [ ! -f "$STAGE3_FILE" ]; then
     eend $?
 fi
 
-ebegin "Import stage3 in docker"
-bzcat "$STAGE3_FILE" | docker import - "$IMAGE_NAME" > /dev/null 2>> $LOGGER
-eend $?
-
-if [ $? -ne 0 ]; then
-    exit 1
+if [ ! -f "$BUILD_DIR/stage3-amd64.tar.xz" ]; then
+    ebegin "Transforming bz2 tarball to xz (golang bug)."
+    bunzip2 -c "$STAGE3_FILE" | xz -z > "$BUILD_DIR/stage3-amd64.tar.xz"
+    eend $?
 fi
 
-ebegin "Remove old Gentoo container"
-docker rm -f "$CONTAINER_TMP_NAME" > /dev/null 2>> $LOGGER || true
-eend $?
-
-ebegin "Configure Gentoo"
-docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" bash -exc $'
-    pythonTarget="$(emerge --info | sed -n \'s/.*PYTHON_TARGETS="\\([^"]*\\)".*/\\1/p\')"
-    pythonTarget="${pythonTarget##* }"
-    echo \'PYTHON_TARGETS="\'$pythonTarget\'"\' >> /etc/portage/make.conf
-    echo \'PYTHON_SINGLE_TARGET="\'$pythonTarget\'"\' >> /etc/portage/make.conf
-' >> $LOGGER
-eend $?
-
-ebegin "Update package"
-docker exec -d -t "$CONTAINER_TMP_NAME" 'export MAKEOPTS="-j$(nproc)" && emerge --newuse --deep --with-bdeps=y @system @world' >> $LOGGER
-eend $?
-
-if [ has_feature "compilation" ]; then
-    ebegin "Remove unnecessary packages"
-    docker exec -d -t  "$CONTAINER_TMP_NAME" emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager >> $LOGGER
+if [ -f "$BUILD_DIR/Dockerfile" ]; then
+    ebegin "Clean Dockerfile"
+    rm -f "$BUILD_DIR/Dockerfile"
     eend $?
+fi
+
+ebegin "Generate Dockerfile"
+dockerfile "FROM scratch"
+dockerfile "MAINTAINER Axel Etcheverry"
+dockerfile "# This one should be present by running the build.sh script"
+dockerfile "ADD stage3-amd64.tar.xz /"
+dockerfile "# Setup the (virtually) current runlevel"
+dockerfile "RUN echo \"default\" > /run/openrc/softlevel"
+dockerfile "# Setup the rc_sys"
+dockerfile "RUN sed -e 's/#rc_sys=\"\"/rc_sys=\"lxc\"/g' -i /etc/rc.conf"
+dockerfile "# Setup the net.lo runlevel"
+dockerfile "RUN ln -s /etc/init.d/net.lo /run/openrc/started/net.lo"
+dockerfile "# Setup the net.eth0 runlevel"
+dockerfile "RUN ln -s /etc/init.d/net.lo /etc/init.d/net.eth0"
+dockerfile "RUN ln -s /etc/init.d/net.eth0 /run/openrc/started/net.eth0"
+dockerfile "# By default, UTC system"
+dockerfile "RUN echo 'UTC' > /etc/timezone"
+dockerfile "# Used when this image is the base of another"
+dockerfile "#"
+dockerfile "# Setup the portage directory and permissions"
+dockerfile "ONBUILD RUN mkdir -p /usr/portage/{distfiles,metadata,packages}"
+dockerfile "ONBUILD RUN chown -R portage:portage /usr/portage"
+dockerfile "ONBUILD RUN echo \"masters = gentoo\" > /usr/portage/metadata/layout.conf"
+dockerfile "# Sync portage"
+dockerfile "ONBUILD RUN emerge-webrsync -q"
+dockerfile "# Display some news items"
+dockerfile "ONBUILD RUN eselect news read new"
+dockerfile "# Finalization"
+dockerfile "ONBUILD RUN env-update"
+
+if [[ $(has_feature "compilation") -eq 0 ]]; then
+    dockerfile "ONBUILD RUN emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager"
 else
     # emerge -C autotools gcc al
-    ebegin "Remove unnecessary packages"
-    docker exec -d -t "$CONTAINER_TMP_NAME" emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager >> $LOGGER
-    eend $?
+    dockerfile "ONBUILD RUN emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager"
 fi
 
-ebegin "Cleaning packages"
-docker exec -d -t "$CONTAINER_TMP_NAME" emerge --depclean >> $LOGGER
-eend $?
-
-ebegin "Export container"
-docker export "$CONTAINER_TMP_NAME" | xz -9 > "$CONTAINER_FILE" >> $LOGGER
-eend $?
-
-ebegin "Remove container"
-docker rm "$CONTAINER_TMP_NAME" >> $LOGGER
-eend $?
-
-ebegin "Remove image"
-docker rmi "$IMAGE_NAME" >> $LOGGER
-eend $?
-
-echo 'FROM scratch' > $BUILD_DIR/Dockerfile
-echo "ADD $CONTAINER_FILE /" >> $BUILD_DIR/Dockerfile
-echo 'CMD ["/bin/bash"]' >> $BUILD_DIR/Dockerfile
-
-ebegin "Fetch username"
-DOCKER_USER=$(docker info | awk '/^Username:/ { print $2 }')
-if [ -z "$DOCKER_USER" ]; then
-    eend 1
-    exit $?
-else
-    eend 0
-fi
+eend 0
 
 ebegin "Build container"
-docker build -t "$DOCKER_USER/gentoo-base" . >> $LOGGER
+docker build -t "$TAG_NAME" build/ >> $LOGGER 2>> $LOGGER
 eend $?
-
