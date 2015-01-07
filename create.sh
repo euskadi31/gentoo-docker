@@ -2,26 +2,22 @@
 # Copyright 2015 Axel Etcheverry
 # Distributed under the terms of the MIT
 
+source func.sh
 
-GENTOO_FUNC=${PORTAGE_BIN_PATH:-/usr/lib/portage/bin}/isolated-functions.sh
+while true ; do
+    case "$1" in
+        -h) usage;
+            exit 0;;
+        --enable-compilation) enable_feature "compilation";
+            shift;;
+        --) shift; break;;
+    esac
+done
+
 DATA_DIR=$(pwd)/data
 LOGGER=$(pwd)/create.log
 BUILD_DIR=$(pwd)/build
 
-if [ ! -f $GENTOO_FUNC ]; then
-    source eapi.sh
-else
-    source "${GENTOO_FUNC}"
-fi
-
-check_command() {
-    which $1 > /dev/null
-
-    if [[ $? -eq 1 ]]; then
-        eerror "Please install $1"
-        exit 1
-    fi
-}
 
 check_command wget
 check_command docker
@@ -62,7 +58,7 @@ ebegin "Import stage3 in docker"
 bzcat "$STAGE3_FILE" | docker import - "$IMAGE_NAME" > /dev/null 2>> $LOGGER
 eend $?
 
-if [ $? ]; then
+if [ $? -ne 0 ]; then
     exit 1
 fi
 
@@ -72,13 +68,43 @@ eend $?
 
 ebegin "Configure Gentoo"
 docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_NAME" "$IMAGE_NAME" bash -exc $'
-    export MAKEOPTS="-j$(nproc)"
     pythonTarget="$(emerge --info | sed -n \'s/.*PYTHON_TARGETS="\\([^"]*\\)".*/\\1/p\')"
     pythonTarget="${pythonTarget##* }"
     echo \'PYTHON_TARGETS="\'$pythonTarget\'"\' >> /etc/portage/make.conf
     echo \'PYTHON_SINGLE_TARGET="\'$pythonTarget\'"\' >> /etc/portage/make.conf
+' >> $LOGGER
+eend $?
+
+ebegin "Update package"
+docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_NAME" "$IMAGE_NAME" bash -exc $'
+    export MAKEOPTS="-j$(nproc)"
     emerge --newuse --deep --with-bdeps=y @system @world
-    emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager
+' >> $LOGGER
+eend $?
+
+if [ has_feature "compilation" ]; then
+
+    ebegin "Remove unnecessary packages"
+    docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_NAME" "$IMAGE_NAME" bash -exc $'
+        export MAKEOPTS="-j$(nproc)"
+        emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager
+    ' >> $LOGGER
+    eend $?
+
+else
+    # emerge -C autotools gcc al
+    ebegin "Remove unnecessary packages"
+    docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_NAME" "$IMAGE_NAME" bash -exc $'
+        export MAKEOPTS="-j$(nproc)"
+        emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager
+    ' >> $LOGGER
+    eend $?
+
+fi
+
+ebegin "Cleaning packages"
+docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_NAME" "$IMAGE_NAME" bash -exc $'
+    export MAKEOPTS="-j$(nproc)"
     emerge --depclean
 ' >> $LOGGER
 eend $?
