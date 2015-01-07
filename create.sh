@@ -88,37 +88,22 @@ docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMA
 eend $?
 
 ebegin "Update package"
-docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" bash -exc $'
-    export MAKEOPTS="-j$(nproc)"
-    emerge --newuse --deep --with-bdeps=y @system @world
-' >> $LOGGER
+docker exec -d -t "$CONTAINER_TMP_NAME" 'export MAKEOPTS="-j$(nproc)" && emerge --newuse --deep --with-bdeps=y @system @world' >> $LOGGER
 eend $?
 
 if [ has_feature "compilation" ]; then
-
     ebegin "Remove unnecessary packages"
-    docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" bash -exc $'
-        export MAKEOPTS="-j$(nproc)"
-        emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager
-    ' >> $LOGGER
+    docker exec -d -t  "$CONTAINER_TMP_NAME" emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager >> $LOGGER
     eend $?
-
 else
     # emerge -C autotools gcc al
     ebegin "Remove unnecessary packages"
-    docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" bash -exc $'
-        export MAKEOPTS="-j$(nproc)"
-        emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager
-    ' >> $LOGGER
+    docker exec -d -t "$CONTAINER_TMP_NAME" emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager >> $LOGGER
     eend $?
-
 fi
 
 ebegin "Cleaning packages"
-docker run -t -v /usr/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" bash -exc $'
-    export MAKEOPTS="-j$(nproc)"
-    emerge --depclean
-' >> $LOGGER
+docker exec -d -t "$CONTAINER_TMP_NAME" emerge --depclean >> $LOGGER
 eend $?
 
 ebegin "Export container"
