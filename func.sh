@@ -34,7 +34,7 @@ has_feature() {
 }
 
 usage() {
-    SCRIPT_NAME=$(basename $BASH_SOURCE)
-    echo "Usage: $SCRIPT_NAME OPTIONS"
-    echo "\t--enable-compilation : Enable package of compilation in container"
+    echo "Usage: create.sh [OPTIONS] CONTAINER_NAME"
+    echo -e "\t--enable-compilation \t\t Enable package of compilation in container"
+    echo -e "\t-h, --help \t\t\t Print this message"
 }
