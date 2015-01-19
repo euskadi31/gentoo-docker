@@ -87,9 +87,9 @@ dockerfile "MAINTAINER Axel Etcheverry"
 # This one should be present by running the build.sh script
 dockerfile "ADD stage3-amd64.tar.xz /"
 # Add default config files
-dockerfile "ADD ./etc/portage/make.conf /etc/portage/make.conf"
-dockerfile "ADD ./etc/eixrc /etc/eixrc"
-dockerfile "ADD ./etc/eix-sync.conf /etc/eix-sync.conf"
+dockerfile "ADD ./provision/etc/portage/make.conf /etc/portage/make.conf"
+dockerfile "ADD ./provision/etc/eixrc /etc/eixrc"
+dockerfile "ADD ./provision/etc/eix-sync.conf /etc/eix-sync.conf"
 # Setup the (virtually) current runlevel
 dockerfile "RUN echo \"default\" > /run/openrc/softlevel"
 # Setup the rc_sys
