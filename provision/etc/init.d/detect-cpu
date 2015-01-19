@@ -1,0 +1,12 @@
+#!/sbin/runscript
+
+depend() {
+    need localmount
+    after bootmisc
+}
+
+start() {
+    ebegin "Fetch cpu number"
+    echo "MAKEOPTS=\"-j$(nproc)\"" > /etc/portage/cpu.conf
+    eend $?
+}

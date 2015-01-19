@@ -87,7 +87,9 @@ dockerfile "MAINTAINER Axel Etcheverry"
 # This one should be present by running the build.sh script
 dockerfile "ADD stage3-amd64.tar.xz /"
 # Add default config files
+dockerfile "ADD ./provision/etc/init.d/detect-cpu /etc/init.d/detect-cpu"
 dockerfile "ADD ./provision/etc/portage/make.conf /etc/portage/make.conf"
+dockerfile "ADD ./provision/etc/portage/cpu.conf /etc/portage/cpu.conf"
 dockerfile "ADD ./provision/etc/eixrc /etc/eixrc"
 dockerfile "ADD ./provision/etc/eix-sync.conf /etc/eix-sync.conf"
 # Setup the (virtually) current runlevel
@@ -101,6 +103,15 @@ dockerfile "RUN ln -s /etc/init.d/net.lo /etc/init.d/net.eth0"
 dockerfile "RUN ln -s /etc/init.d/net.eth0 /run/openrc/started/net.eth0"
 # By default, UTC system
 dockerfile "RUN echo 'UTC' > /etc/timezone"
+# Remove doc files
+dockerfile "RUN rm -rf /usr/share/doc/*"
+# Remove man files
+dockerfile "RUN rm -rf /usr/share/man/*"
+# Remove info files
+dockerfile "RUN rm -rf /usr/share/info/*"
+dockerfile "RUN env-update"
+dockerfile "RUN rc-update add detect-cpu default"
+dockerfile "RUN /etc/init.d/detect-cpu start"
 # Used when this image is the base of another
 #
 # Setup the portage directory and permissions
@@ -110,27 +121,18 @@ dockerfile "ONBUILD RUN echo \"masters = gentoo\" > /usr/portage/metadata/layout
 # Sync portage
 dockerfile "ONBUILD RUN emerge-webrsync"
 # Display some news items
-dockerfile "ONBUILD RUN eselect news read new"
+#dockerfile "ONBUILD RUN eselect news read new"
 # Finalization
 dockerfile "ONBUILD RUN env-update"
-
 # unmerge unusd packages
-if [[ $(has_feature "compilation") -eq 0 ]]; then
-    dockerfile "ONBUILD RUN emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager"
-else
-    # emerge -C autotools gcc al
-    dockerfile "ONBUILD RUN emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager"
-fi
-
+# emerge -C sys-devel/libtool sys-devel/gcc
+#dockerfile "ONBUILD RUN emerge -C virtual/editor virtual/ssh man sys-apps/man-pages sys-apps/openrc sys-fs/e2fsprogs sys-apps/texinfo virtual/service-manager"
+dockerfile "ONBUILD RUN emerge -C virtual/editor virtual/ssh sys-apps/openrc sys-fs/e2fsprogs virtual/service-manager"
 # install default package
-dockerfile "ONBUILD RUN emerge eix vim git curl"
+dockerfile "ONBUILD RUN emerge app-portage/eix app-editors/vim dev-vcs/git net-misc/curl"
 dockerfile "ONBUILD RUN eix-update"
-# Remove doc files
-dockerfile "ONBUILD RUN rm -rf /usr/share/doc/*"
-# Remove man files
-dockerfile "ONBUILD RUN rm -rf /usr/share/man/*"
-# Remove info files
-dockerfile "ONBUILD RUN rm -rf /usr/share/info/*"
+# Exec depclean
+dockerfile "ONBUILD RUN emerge --depclean"
 
 eend 0
 
