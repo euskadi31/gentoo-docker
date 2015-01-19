@@ -66,7 +66,7 @@ if [ ! -f "$STAGE3_FILE" ]; then
 fi
 
 if [ ! -f "$BUILD_DIR/stage3-amd64.tar.xz" ]; then
-    ebegin "Transforming bz2 tarball to xz (golang bug)."
+    ebegin "Transforming bz2 tarball to xz (golang bug)"
     bunzip2 -c "$STAGE3_FILE" | xz -z > "$BUILD_DIR/stage3-amd64.tar.xz"
     eend $?
 fi
@@ -80,38 +80,48 @@ fi
 ebegin "Generate Dockerfile"
 dockerfile "FROM scratch"
 dockerfile "MAINTAINER Axel Etcheverry"
-dockerfile "# This one should be present by running the build.sh script"
+# This one should be present by running the build.sh script
 dockerfile "ADD stage3-amd64.tar.xz /"
-dockerfile "# Setup the (virtually) current runlevel"
+# Add default config files
+dockerfile "ADD ./provision/etc/portage/make.conf /etc/portage/make.conf"
+dockerfile "ADD ./provision/etc/eixrc /etc/eixrc"
+dockerfile "ADD ./provision/etc/eix-sync.conf /etc/eix-sync.conf"
+# Setup the (virtually) current runlevel
 dockerfile "RUN echo \"default\" > /run/openrc/softlevel"
-dockerfile "# Setup the rc_sys"
+# Setup the rc_sys
 dockerfile "RUN sed -e 's/#rc_sys=\"\"/rc_sys=\"lxc\"/g' -i /etc/rc.conf"
-dockerfile "# Setup the net.lo runlevel"
+# Setup the net.lo runlevel
 dockerfile "RUN ln -s /etc/init.d/net.lo /run/openrc/started/net.lo"
-dockerfile "# Setup the net.eth0 runlevel"
+# Setup the net.eth0 runlevel
 dockerfile "RUN ln -s /etc/init.d/net.lo /etc/init.d/net.eth0"
 dockerfile "RUN ln -s /etc/init.d/net.eth0 /run/openrc/started/net.eth0"
-dockerfile "# By default, UTC system"
+# By default, UTC system
 dockerfile "RUN echo 'UTC' > /etc/timezone"
-dockerfile "# Used when this image is the base of another"
-dockerfile "#"
-dockerfile "# Setup the portage directory and permissions"
+# Used when this image is the base of another
+#
+# Setup the portage directory and permissions
 dockerfile "ONBUILD RUN mkdir -p /usr/portage/{distfiles,metadata,packages}"
 dockerfile "ONBUILD RUN chown -R portage:portage /usr/portage"
 dockerfile "ONBUILD RUN echo \"masters = gentoo\" > /usr/portage/metadata/layout.conf"
-dockerfile "# Sync portage"
-dockerfile "ONBUILD RUN emerge-webrsync -q"
-dockerfile "# Display some news items"
+# Sync portage
+dockerfile "ONBUILD RUN emerge-webrsync"
+# Display some news items
 dockerfile "ONBUILD RUN eselect news read new"
-dockerfile "# Finalization"
+# Finalization
 dockerfile "ONBUILD RUN env-update"
 
+# unmerge unusd packages
 if [[ $(has_feature "compilation") -eq 0 ]]; then
     dockerfile "ONBUILD RUN emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager"
 else
     # emerge -C autotools gcc al
     dockerfile "ONBUILD RUN emerge -C editor ssh man man-pages openrc e2fsprogs texinfo service-manager"
 fi
+
+# install default package
+dockerfile "ONBUILD RUN emerge eix vim git curl"
+dockerfile "ONBUILD RUN eix-update"
+#dockerfile "ONBUILD RUN emerge net-fs/cifs-utils"
 
 eend 0
 
