@@ -77,15 +77,19 @@ if [ -f "$BUILD_DIR/Dockerfile" ]; then
     eend $?
 fi
 
+ebegin "Copy etc files"
+cp -r provision/ build/
+eend $?
+
 ebegin "Generate Dockerfile"
 dockerfile "FROM scratch"
 dockerfile "MAINTAINER Axel Etcheverry"
 # This one should be present by running the build.sh script
 dockerfile "ADD stage3-amd64.tar.xz /"
 # Add default config files
-dockerfile "ADD ./provision/etc/portage/make.conf /etc/portage/make.conf"
-dockerfile "ADD ./provision/etc/eixrc /etc/eixrc"
-dockerfile "ADD ./provision/etc/eix-sync.conf /etc/eix-sync.conf"
+dockerfile "ADD ./etc/portage/make.conf /etc/portage/make.conf"
+dockerfile "ADD ./etc/eixrc /etc/eixrc"
+dockerfile "ADD ./etc/eix-sync.conf /etc/eix-sync.conf"
 # Setup the (virtually) current runlevel
 dockerfile "RUN echo \"default\" > /run/openrc/softlevel"
 # Setup the rc_sys
@@ -121,7 +125,12 @@ fi
 # install default package
 dockerfile "ONBUILD RUN emerge eix vim git curl"
 dockerfile "ONBUILD RUN eix-update"
-#dockerfile "ONBUILD RUN emerge net-fs/cifs-utils"
+# Remove doc files
+dockerfile "ONBUILD RUN rm -rf /usr/share/doc/*"
+# Remove man files
+dockerfile "ONBUILD RUN rm -rf /usr/share/man/*"
+# Remove info files
+dockerfile "ONBUILD RUN rm -rf /usr/share/info/*"
 
 eend 0
 
