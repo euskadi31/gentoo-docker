@@ -20,7 +20,7 @@ fi
 einfo "Image name: $IMAGE_NAME"
 
 CONTAINER_TMP_NAME="$IMAGE_NAME-tmp"
-CONTAINER_FILE="$IMAGE_NAME.xz"
+CONTAINER_FILE="$IMAGE_NAME-$STAGE3.xz"
 DATA_DIR=$(pwd)/data
 
 if [ ! -d $DATA_DIR ]; then
@@ -159,10 +159,13 @@ docker exec -d -t "$CONTAINER_TMP_NAME" emerge --depclean >> $LOGGER
 eend_exit $?
 
 ebegin "Export container"
-docker export "$CONTAINER_TMP_NAME" | xz -9 > "$CONTAINER_FILE" >> $LOGGER
-eend $?
+docker export "$CONTAINER_TMP_NAME" | xz -9 > "$CONTAINER_FILE"
+eend_exit $?
 
 ebegin "Remove $STAGE3_FILE"
 rm -rf $STAGE3_FILE
 eend $?
 
+ebegin "Remove portage"
+rm -rf data/
+eend $?
