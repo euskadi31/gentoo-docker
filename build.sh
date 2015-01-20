@@ -117,8 +117,20 @@ ebegin "Config timezon"
 docker exec -t "$CONTAINER_TMP_NAME" cp /media/provision/etc/timezone /etc/timezone >> $LOGGER
 eend_exit $?
 
-ebegin "Remove doc, info, man and gtk-doc"
-docker exec -t "$CONTAINER_TMP_NAME" rm -rvf /usr/share/{doc,man,info,gtk-doc}/* >> $LOGGER
+ebegin "Remove doc"
+docker exec -t "$CONTAINER_TMP_NAME" rm -rf /usr/share/doc >> $LOGGER
+eend_exit $?
+
+ebegin "Remove info"
+docker exec -t "$CONTAINER_TMP_NAME" rm -rf /usr/share/info >> $LOGGER
+eend_exit $?
+
+ebegin "Remove man"
+docker exec -t "$CONTAINER_TMP_NAME" rm -rf /usr/share/man >> $LOGGER
+eend_exit $?
+
+ebegin "Remove gtk-doc"
+docker exec -t "$CONTAINER_TMP_NAME" rm -rf /usr/share/gtk-doc >> $LOGGER
 eend_exit $?
 
 ebegin "Update env"
