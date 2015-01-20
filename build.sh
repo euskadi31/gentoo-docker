@@ -19,10 +19,6 @@ fi
 
 einfo "Image name: $IMAGE_NAME"
 
-if [ ! -d $DATA_DIR ]; then
-    mkdir -p $DATA_DIR
-fi
-
 if [[ -z $STAGE3 ]]
 then
     ebegin "Fetch latest stage3"
@@ -33,6 +29,10 @@ fi
 CONTAINER_TMP_NAME="$IMAGE_NAME-tmp"
 CONTAINER_FILE="$IMAGE_NAME-$STAGE3.tgz"
 DATA_DIR=$(pwd)/data
+
+if [ ! -d $DATA_DIR ]; then
+    mkdir -p $DATA_DIR
+fi
 
 einfo "Release: ${STAGE3:0:4}-${STAGE3:4:2}-${STAGE3:6}"
 
