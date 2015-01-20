@@ -67,7 +67,7 @@ rm -rf $STAGE3_FILE
 eend $?
 
 ebegin "Running Gentoo"
-docker run -t -v $(pwd)/provision:/media/provision -v $(pwd)/data/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" /bin/bash >> $LOGGER
+docker run -d -t -v $(pwd)/provision:/media/provision -v $(pwd)/data/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" /bin/bash >> $LOGGER
 eend_exit $?
 
 ebegin "Install detect-cpu"
