@@ -53,6 +53,10 @@ ebegin "Extract portage"
 cd $DATA_DIR && tar -xf "portage-latest.tar.xz" && cd ../ 2>> $LOGGER
 eend_exit $?
 
+ebegin "Change permission"
+chmod -R 0777 data/
+eend $?
+
 ebegin "Remove old Gentoo container"
 docker rm -f "$CONTAINER_TMP_NAME" > /dev/null 2>> $LOGGER || true
 eend $?
