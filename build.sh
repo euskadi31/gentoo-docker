@@ -62,7 +62,7 @@ bzcat "$STAGE3_FILE" | docker import - "$IMAGE_NAME" > /dev/null 2>> $LOGGER
 eend_exit $?
 
 ebegin "Running Gentoo"
-docker run -d -t -v $(pwd)/provision:/media/provision -v $(pwd)/data/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" /bin/bash >> $LOGGER
+docker run --privileged=true -d -t -v $(pwd)/provision:/media/provision -v $(pwd)/data/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" /bin/bash >> $LOGGER
 eend_exit $?
 
 ebegin "Install detect-cpu"
