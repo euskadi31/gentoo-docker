@@ -46,7 +46,7 @@ if [ ! -f "$STAGE3_FILE" ]; then
 fi
 
 ebegin "Download portage"
-wget -N "http://distfiles.gentoo.org/releases/snapshots/current/portage-latest.tar.xz" -O "$DATA_DIR/portage-latest.tar.xz" > /dev/null 1> $LOGGER 2> /dev/null
+wget -N "http://distfiles.gentoo.org/releases/snapshots/current/portage-latest.tar.xz" -O "$DATA_DIR/portage-latest.tar.xz" > /dev/null 1> /dev/null 2> $LOGGER
 eend_exit $?
 
 ebegin "Extract portage"
