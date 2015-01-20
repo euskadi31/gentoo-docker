@@ -118,7 +118,7 @@ docker exec -t "$CONTAINER_TMP_NAME" cp /media/provision/etc/timezone /etc/timez
 eend_exit $?
 
 ebegin "Remove doc, info, man and gtk-doc"
-docker exec -t "$CONTAINER_TMP_NAME" rm -rf /usr/share/{doc,man,info,gtk-doc}/* >> $LOGGER
+docker exec -t "$CONTAINER_TMP_NAME" rm -rvf /usr/share/{doc,man,info,gtk-doc}/* >> $LOGGER
 eend_exit $?
 
 ebegin "Update env"
@@ -150,7 +150,7 @@ docker exec -t "$CONTAINER_TMP_NAME" emerge -C virtual/editor virtual/ssh sys-ap
 eend_exit $?
 
 ebegin "Install default packages"
-docker exec -t "$CONTAINER_TMP_NAME" emerge app-portage/eix app-editors/vim dev-vcs/git net-misc/curl >> $LOGGER
+docker exec -t "$CONTAINER_TMP_NAME" emerge app-editors/vim dev-vcs/git net-misc/curl >> $LOGGER
 eend_exit $?
 
 ebegin "Clean dep"
