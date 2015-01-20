@@ -7,7 +7,7 @@ source func.sh
 check_command wget
 check_command docker
 check_command bzcat
-check_command xz
+check_command gzip
 
 LOGGER="$(pwd)/build.log"
 
@@ -20,7 +20,7 @@ fi
 einfo "Image name: $IMAGE_NAME"
 
 CONTAINER_TMP_NAME="$IMAGE_NAME-tmp"
-CONTAINER_FILE="$IMAGE_NAME-$STAGE3.xz"
+CONTAINER_FILE="$IMAGE_NAME-$STAGE3.tgz"
 DATA_DIR=$(pwd)/data
 
 if [ ! -d $DATA_DIR ]; then
@@ -159,7 +159,7 @@ docker exec -d -t "$CONTAINER_TMP_NAME" emerge --depclean >> $LOGGER
 eend_exit $?
 
 ebegin "Export container"
-docker export "$CONTAINER_TMP_NAME" | xz -9 > "$CONTAINER_FILE"
+docker export "$CONTAINER_TMP_NAME" | gzip -c > "$CONTAINER_FILE"
 eend_exit $?
 
 ebegin "Remove $STAGE3_FILE"
