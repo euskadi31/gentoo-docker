@@ -62,10 +62,6 @@ ebegin "Import stage3 in docker"
 bzcat "$STAGE3_FILE" | docker import - "$IMAGE_NAME" > /dev/null 2>> $LOGGER
 eend_exit $?
 
-ebegin "Remove $STAGE3_FILE"
-rm -rf $STAGE3_FILE
-eend $?
-
 ebegin "Running Gentoo"
 docker run -d -t -v $(pwd)/provision:/media/provision -v $(pwd)/data/portage:/usr/portage:ro --name "$CONTAINER_TMP_NAME" "$IMAGE_NAME" /bin/bash >> $LOGGER
 eend_exit $?
@@ -164,5 +160,9 @@ eend_exit $?
 
 ebegin "Export container"
 docker export "$CONTAINER_TMP_NAME" | xz -9 > "$CONTAINER_FILE" >> $LOGGER
+eend $?
+
+ebegin "Remove $STAGE3_FILE"
+rm -rf $STAGE3_FILE
 eend $?
 
