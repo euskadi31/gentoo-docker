@@ -2,3 +2,5 @@
 *.log
 data/
 build/
+*.bz2
+*.xz

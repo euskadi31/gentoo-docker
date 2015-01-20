@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# /etc/portage/bashrc
+
+if [[ ${EBUILD_PHASE} == "postinst" ]]; then
+    einfo "Running localepurge"
+    PATH="/bin:/usr/bin" localepurge
+fi

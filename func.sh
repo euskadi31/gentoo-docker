@@ -42,3 +42,10 @@ usage() {
     echo -e "\t--enable-compilation \t\t Enable package of compilation in container"
     echo -e "\t-h, --help \t\t\t Print this message"
 }
+
+eend_exit() {
+    eend $1
+    if [[ $1 -ne 0 ]]; then
+        exit 1
+    fi
+}
