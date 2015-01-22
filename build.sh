@@ -161,13 +161,21 @@ ebegin "Remove packages"
 docker exec -t "$CONTAINER_TMP_NAME" emerge -C virtual/editor virtual/ssh sys-apps/openrc sys-fs/e2fsprogs virtual/service-manager >> $LOGGER
 eend_exit $?
 
-ebegin "Install default packages"
-docker exec -t "$CONTAINER_TMP_NAME" emerge app-editors/vim dev-vcs/git net-misc/curl >> $LOGGER
-eend_exit $?
+#ebegin "Install default packages"
+#docker exec -t "$CONTAINER_TMP_NAME" emerge app-editors/vim dev-vcs/git net-misc/curl >> $LOGGER
+#eend_exit $?
 
 ebegin "Clean dep"
 docker exec -t "$CONTAINER_TMP_NAME" emerge --depclean >> $LOGGER
 eend_exit $?
+
+ebegin "Update world"
+docker exec -t "$CONTAINER_TMP_NAME" emerge --update --newuse --deep world >> $LOGGER
+eend_exit $?
+
+ebegin "Run revdep-rebuild"
+docker exec -t "$CONTAINER_TMP_NAME" revdep-rebuild >> $LOGGER
+eend $?
 
 ebegin "Export container"
 docker export "$CONTAINER_TMP_NAME" | gzip -c > "$CONTAINER_FILE"
